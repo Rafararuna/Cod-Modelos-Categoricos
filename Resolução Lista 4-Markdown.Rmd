@@ -1,0 +1,771 @@
+---
+title: "Lista de Exercícios 4 - ADC"
+author: "Rafael Santana Araruna - 180026798"
+date: "30/10/2021"
+output: pdf_document
+---
+
+
+# **Questão 1) Tiges et. al (1999) apresentam um conjunto de dados de 382 pacientes (348 com informação completa) sendo 45 com fratura no joelho. Uma vez que 1.3 milhões de pessoas/ano visitam a emergências de hospitais nos EUA reclamando de traumas graves no joelho, u custo associado a radiografias no joelho é substancial. O objetivo do estudo é avaliar se algumas covariáveis podem ser utilizadas para uma triagem antes de realizar um exame por raio X.**
+
+```{r message=FALSE, warning=FALSE}
+# Abrindo o banco de dados:
+Knee <- read.csv("C:/Users/jgararuna/Downloads/kneefr.csv", sep=",", header=TRUE)
+
+# Removendo os valores faltantes (NA):
+Knee <- na.omit(Knee)
+```
+
+## A) O objetivo é verificar se as covariáveis WEIGHT e PATELLAR são boas para auxiliar na decisão de realizar um exame de raio X. Dessa forma, foi feita uma análise considerando:
+
+* (1) somente WEIGHT como covariável:
+
+```{r message=FALSE, warning=FALSE}
+# Construindo o modelo:
+mod1 <-  glm(HAD_XRA1 ~ WEIGHT, family=binomial, data=Knee, maxit=100)
+summary(mod1)
+```
+
+* (2) Somente PATELLAR como covariável:
+
+```{r message=FALSE, warning=FALSE}
+mod2 <-  glm(HAD_XRA1 ~ PATELLAR, family=binomial, data=Knee, maxit=100)
+summary(mod2)
+```
+
+* (3) WEIGHT e PATELLAR como covariáveis:
+
+```{r message=FALSE, warning=FALSE}
+mod3 <-  glm(HAD_XRA1 ~ WEIGHT + PATELLAR, family=binomial, data=Knee, maxit=100)
+summary(mod3)
+```
+
+Analisando as saídas dos três modelos contruídos acima, pode-se dizer que nenhuma variável é relevante na modelagem, ou seja, nenhuma delas são boas para auxiliar na decisão de realizar um exame de raio X. Tal fato pode ser explicado em razão da variável resposta HAD_XRA1 ter 1's.
+
+## B) Indique a razão de chances no caso (1) e seu significado. Este resultado é útil para o estudo?
+
+Para o caso (1), tem-se a seguinte equação:
+
+$$logito\hat{\pi}(x) = log[\frac{\pi(x)}{1 - \pi(x)}] = 28.57 + 8.33 \times 10^{-7}x$$
+Dado isso, conseguimos agora calcular a razão de chances:
+
+$$\frac{\hat{\pi}(x)}{1 - \hat{\pi}(x)} = e^{28.57 + 8.33 10^{-7}x}$$
+Nota-se que a razão de chances praticamente não se altera conforme o valor de x cresce, ou seja, ele não informa nada. Assim, pode-se dizer que esse resultado não é útil para o estudo.
+
+\newpage
+
+# **Questão 14) A tabela abaixo é baseada em um estudo epidemiológico com 2848 sujeitos para avaliar se ronco (escores 0,2,4,5) é um possível fator de risco para doença de coração.**
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+base_ronco <- data.frame("Freq. de Ronco" = c('Nunca (0)', 'Ocasionalmente (2)', 
+                                              'Quase toda noite (4)','Toda noite (5)'), 
+                        "Com Doença" = c(24,35,21,30), 
+                        "Sem Doença" = c(1355,603,192,224))
+colnames(base_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+knitr::kable(base_ronco,align = 'c')
+```
+
+## A) Ajuste um modelo de regressão logística e obtenha as estimativas dos parâmetros.
+
+Primeiramente, é feito o reajuste do banco de dados:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+base2_ronco <-  data.frame("Freq. de Ronco" = c(0,2,4,5), 
+                         "Com Doença" = c(24,35,21,30), 
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base2_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+knitr::kable(base2_ronco,align = 'c')
+```
+
+Em seguida, fazemos o ajuste do modelo:
+
+```{r message=FALSE, warning=FALSE}
+mod_ronco <- glm(base2_ronco$`Com Doença`/(base2_ronco$`Com Doença`+ base2_ronco$`Sem Doença`) ~ 
+                   base2_ronco$`Freq. de Ronco`, weights = base2_ronco$`Com Doença` +
+                   base2_ronco$`Sem Doença`, family = binomial)
+summary(mod_ronco)
+```
+
+A partir da saída acima, nota-se que $\hat{\alpha} = -3.86625$ e $\hat{\beta} = 0.39734$ .
+
+## B) Calcule as probabilidades amostrais de casos de doenças de coração para cada nível de ronco. Obtenha as probabilidades estimadas e indique se o modelo parece ajustar bem os valores amostrados.
+
+As probabilidades são: $\hat{p}_{0} = \frac{24} {24+1355}$, $\hat{p}_{2} = \frac{35} {35+603}$, $\hat{p}_{3} = \frac{21} {21+192}$ e $\hat{p}_{4} = \frac{30} {30+224}$ .
+
+Além disso, as probabilidades estimadas pelo modelo construído anteriormente são calculadas a seguir:
+
+```{r message=FALSE, warning=FALSE}
+pi_est <- function(alfa,beta,x){ exp(alfa + beta*x) / (exp(alfa + beta*x) + 1)}
+pi_0 <-  pi_est(alfa=-3.867,beta=0.397,x=0)
+pi_2 <-  pi_est(alfa=-3.867,beta=0.397,x=2)
+pi_4 <-  pi_est(alfa=-3.867,beta=0.397,x=4)
+pi_5 <-  pi_est(alfa=-3.867,beta=0.397,x=5)
+
+df <- data.frame("0" = pi_0, "2" = pi_2, "4" = pi_4, "5" = pi_5)
+colnames(df) <- c("pi_0", "pi_2", "pi_4", "pi_5")
+knitr::kable(df,align = 'c')
+```
+
+Pelos resultado, percebe-se que as probabilidades amostrais e as probabilidades ajustadas pelo modelo são parecidas.
+
+## C) Calcule e interprete o nível efetivo mediano $EL_{50} = - \frac{\hat{\alpha}} {\beta}$.
+
+Temos que $EL_{50} = - \frac{(-3.86625)}{0.39734} = 9.7405$. Isto indica que, nesse ponto, cada resultado (sucesso/fracasso) tem 50% de chance de ocorrência.
+
+## D) Calcule o acréscimo na chance de infarto para cada unidade acrescida no ronco.
+
+Para cada unidade acrescida na variável "ronco", a chance de infarto é multiplicada por $e^{\hat{\beta}} = 1.4873$, isto é, há um crescimento de 48,73% na chance.
+
+## E) Faça um teste para a qualidade do ajuste. Indique as hipóteses, estatística do teste, p-valor e conclusão.
+
+Primeiramente, tem-se os seguintes resultados do modelo construído anteriormente:
+
+```{r message=FALSE, warning=FALSE}
+summary(mod_ronco)
+```
+
+As hipóteses a serem testadas são:
+
+$$ H_{0} : \beta = 0$$
+$$ H_{1} : \beta \neq 0$$
+
+A estatística do teste é dada por:
+
+$$ Z = \frac{\hat{\beta}}{SE} \sim  N(0,1)$$
+
+$$ Z = \frac {0.39734} {0.05001} = 7.945 \Rightarrow P = 1.94 \times 10^{-15}$$
+
+A partir do resultado acima, e considerando um nível de significância $\alpha = 0.05$, conclui-se que há evidências suficientes para rejeitar a hipótese nula.
+
+## F) Se alterarmos a codificação da variável ronco, as estimativas dos parâmetros serão diferentes? Justifique.
+
+Se considerarmos "ronco" como sendo uma variável quantitativa, então as estimativas vão mudar conforme os valores codificados são alterados. No entanto, se definirmos a variável "ronco" como sendo um fator, as estimativas não vão mudar. Segue as duas situações abaixo:
+
+Primeiramente, vamos alterar a codificação e construir o modelo com a variável "ronco" ainda como quantitativa:
+
+```{r message=FALSE, warning=FALSE}
+base3_ronco <-  data.frame("Freq. de Ronco" = c(1,2,3,4), # codificação 1,2,3,4
+                         "Com Doença" = c(24,35,21,30),
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base3_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+
+mod2_ronco <- glm(base3_ronco$`Com Doença`/(base3_ronco$`Com Doença`+ base3_ronco$`Sem Doença`) ~
+                    base3_ronco$`Freq. de Ronco`, weights = base3_ronco$`Com Doença` + 
+                    base3_ronco$`Sem Doença`, family = binomial)
+summary(mod2_ronco)
+```
+
+Com o resultado acima, pode-se notar que os valores de $\hat{\alpha}$ e $\hat{\beta}$ mudaram em razão da alteração na codificação da variável "ronco".
+
+Nesse sentido, vamos tratar a variável "ronco" agora como categórica. Assim, será construído dois modelos, o primeiro com a codificação original e o segundo com a codificação (1,2,3,4). Dessa forma, tem-se:
+
+* Modelo com a codificação original:
+
+```{r message=FALSE, warning=FALSE}
+base4_ronco <-  data.frame("Freq. de Ronco" = c(0,2,4,5),
+                         "Com Doença" = c(24,35,21,30),
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base4_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+
+mod3_ronco <- glm(base4_ronco$`Com Doença`/(base4_ronco$`Com Doença`+ base4_ronco$`Sem Doença`) ~
+                    factor(base4_ronco$`Freq. de Ronco`), weights = base4_ronco$`Com Doença` +
+                    base4_ronco$`Sem Doença`, family = binomial)
+summary(mod3_ronco)
+```
+
+* Modelo com a codificação alterada:
+
+```{r message=FALSE, warning=FALSE}
+base5_ronco = data.frame("Freq. de Ronco" = c(1,2,3,4), # codificação 1,2,3,4
+                         "Com Doença" = c(24,35,21,30),
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base5_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+
+mod4_ronco <- glm(base5_ronco$`Com Doença`/(base5_ronco$`Com Doença`+ base5_ronco$`Sem Doença`) ~
+                    factor(base5_ronco$`Freq. de Ronco`), weights = base5_ronco$`Com Doença` +
+                    base5_ronco$`Sem Doença`, family = binomial)
+summary(mod4_ronco)
+```
+
+A partir das saídas dos dois modelos acima, observamos que, se a variável "ronco" for tratada como categórica, a mudança na codificação não altera os resultados.
+
+\newpage
+
+# **Questão 4.1) A study investigated characteristics associated with y= whether a cancer patient achieved remission (1=yes, 0=no). An important explanatory variable was a labeling index (LI=percentage of “labeled” cells") that measures proliferative activity of cells after a patient receives an injection of tritiated thymidine. Table 4.5 shows the data and R output for a logistic regression model.**
+
+## A) Show that $\hat{P}(y = 1) = 0.50$ when $LI = 26$.
+
+Sabendo que ${\pi}(x) = P(Y = 1)$ , isola-se essa quantidade na função logística. Considerando $a = \alpha$ , $b = \beta$ e $\pi = {\pi}(x)$ , temos:
+
+$$logit(\pi) = a + bx$$
+$$log[\frac {\pi}{1 - \pi}] = a + bx$$
+$$\frac {\pi}{1 - \pi} = e^{a + bx}$$
+
+$$\frac {1 - \pi}{\pi} = \frac {1}{e^{a + bx}}$$
+
+$$\frac {1}{\pi} - 1 = \frac {1}{e^{a + bx}}$$
+
+$$\frac {1}{\pi} = 1 + \frac {1}{e^{a + bx}}$$
+
+$$\frac {1}{\pi} = \frac {e^{a + bx} + 1}{e^{a + bx}}$$
+
+Assim, temos que:
+
+$$\pi(x) = \frac {e^{a + bx}}{e^{a + bx} + 1}$$
+
+$$\hat{\pi}(x) = \frac {e^{\hat{a} + \hat{b}x}}{e^{\hat{a} + \hat{b}x} + 1}$$
+
+Sendo assim, dado que $\hat{\alpha} = -3.77714$ , $\hat{\beta} = 0.14486$ e $LI = 26$ , temos os seguintes resultados:
+
+$$\hat{P}( Y = 1) = \hat{\pi}(x) = \frac {e^{-3.77714 + 0.14486 \times 26 }}{e^{-3.77714 + 0.14486 \times 26} + 1} = 0.497305 \sim 0.5$$
+
+## B) When $LI$ increases by 1, show that the estimated odds of remission multiply by 1.16.
+
+Sabemos que $\frac {\pi(x)}{1 - \pi(x)} = e^{a + bx} = e^{a} + e^{bx}$ . Porém, quando $x^{'} = x + 1$ , a razão de chances se torna $e^{a} + e^{b(x+1)} = e^{a}e^{bx}e^{b}$ . A partir disso, nota-se que a razão de chances aumenta em um fator de $e^{b} = 1.155878 \sim 1.16$ .
+
+## C) Summarize the $LI$ effect by how $\hat{P}( Y = 1)$ changes over the range or interquartile range of $LI$ values.
+
+A curva logística $\pi(x)$ tem inclinação dada por:
+
+$$\beta\pi(x)[1 - \pi(x)]$$
+
+Logo, $\hat{\pi(x)}$ tem inclinação dada por:
+
+$$\hat{\beta}\hat{\pi}(x)[1 - \hat{\pi}(x)]$$
+
+O resultado acima indica o efeito de LI sobre como $\hat{P}( Y = 1)$ muda, lembrando que $x = LI$ .
+
+## D) Show that the rate of change in $\hat{P}(Y = 1)$ is 0.009 when $LI = 8$.
+
+Temos que:
+
+* $\hat{\alpha} = -3.77714$
+* $\hat{\beta} = 0.14486$
+* $LI = 8$
+* $\hat{\pi}(x) = \frac {e^{\hat{a} + \hat{b}LI}}{e^{\hat{a} + \hat{b}LI} + 1}$
+
+Substituindo os valores acima em $\hat{\beta}\hat{\pi}(x)[1 - \hat{\pi}(x)]$ , tem-se:
+
+$$0.14486 \times \hat{\pi}(8) \times [1 - \hat{\pi}(8)] = 0.009177198$$
+
+## E) Summarize the $LI$ effect by the estimated average marginal effect.
+
+O efeito marginal médio consiste na derivada calculada anteriormente, aplicada em $LI$. Dessa maneira, temos:
+
+```{r message=FALSE, warning=FALSE}
+LI <- c(8,8,10,10,12,12,12,14,14,14,16,16,16,18,20,20,20,22,22,24,26,28,32,34,38,38,38)
+alfa <- -3.77714
+beta <- 0.14486
+pi_x <- function(LI){exp(alfa + beta*LI) / ( exp(alfa + beta*LI) + 1 )}
+
+efeito_marginal_medio <- beta*pi_x(mean(LI))*(1-pi_x(mean(LI)))
+print(efeito_marginal_medio)
+```
+\newpage
+
+# **Questão 4.2) Refer to the previous exercise. Using information from Table 4.5**
+
+## A) Conduct a Wald test for the $LI$ effect and construct a 95% confidence interval for the odds ratio corresponding to a 1-unit increase in the $LI$. Interpret.
+
+Acerca da Teste de Wald, cuja estatística é dada por $Z = \frac {\hat{\beta}}{SE} \sim N(0,1)$ , tem-se as seguintes hipóteses:
+
+$$H_{0}: \beta = 0 $$
+
+$$H_{1}: \beta \neq 0 $$
+
+Sabendo que $\beta = 0.14486$ e $SE = 0.05934$, consegue-se calcular o p-valor:
+
+```{r message=FALSE, warning=FALSE}
+beta <- 0.14486
+SE <- 0.05934
+p_valor <- 2*(1 - pnorm(beta/SE))
+print(p_valor)
+```
+Considerando um nível de significância de 5%, há evidências suficientes pra rejeitar a hipótese nula.
+
+Porém, o intervalo de Wald para o $logit(\pi(x))$ é dado por:
+
+$$\hat{\beta} \pm z_{\frac{\alpha}{2}}SE$$
+Nesse sentido, exponencializando o endpoints do intervalo acima, obtem-se o intervalo para $e^{\beta}$, que se trata do efeito multiplicativo sobre a odds com o aumento de 1 unidade em $x$. Sendo assimm, temos:
+
+```{r message=FALSE, warning=FALSE}
+beta <- 0.14486
+SE <- 0.05934
+
+LI <- exp(beta-qnorm(0.975)*SE)
+LS <- exp(beta+qnorm(0.975)*SE)
+cbind(LI,LS)
+```
+
+## B) Conduct a likelihood-ratio test and construct a 95% profile likelihood interval. Interpret.
+
+Primeiramente, define-se os dados e o seu respectivo modelo:
+
+```{r message=FALSE, warning=FALSE}
+LI <- c(8,8,10,10,12,12,12,14,14,14,16,16,16,18,20,20,20,22,22,24,26,28,32,34,38,38,38)
+y <- c(0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,0,1,1,0,1,1,1,0)
+mod <- glm(y ~ LI, family=binomial)
+summary(mod)
+```
+
+Em seguida, realiza-se o teste da razão de verossimilhança:
+
+```{r message=FALSE, warning=FALSE}
+library(car)
+Anova(mod)
+```
+
+Agora, calcula-se o intervalo de confiança:
+
+```{r message=FALSE, warning=FALSE}
+confint(mod)
+```
+
+\newpage
+
+# **Questão 4.3) Refer to the previous two exercises. Set up the data file as 14 observations in grouped data format. Compare to the Remissions data file at the text website. Fit the model with this data file. Are the ML model parameter estimates the same as with the ungrouped data file? Is the deviance the same? Why or why not?**
+
+```{r message=FALSE, warning=FALSE}
+banco_remission <- read.table("C:/Users/jgararuna/Downloads/Lista 4 - ADC/Remission.dat", 
+                              header = TRUE)
+
+mod <- glm(banco_remission$remissions/(banco_remission$remissions + banco_remission$cases)~
+             banco_remission$LI, family = binomial)
+summary(mod)
+```
+
+Analisando a saída acima, notamos que $\hat{\alpha} = -3.26593$ e $\hat{\beta} = 0.08650$, ou seja, as estimativas dos parâmetros e as desviâncias não são as mesmas. Isso ocorre devido ao fato do termo "remissions/(remissions + cases)" possuir elementos não inteiros.
+
+\newpage
+
+# **Questão 4.4) For the snoring and heart disease data of Table 3.1 (Section 3.2.3) with snoringlevel scores (0, 2, 4, 5), the logistic regression ML fit is $logit[\hat{P}(Y = 1)] = -3.866 + 0.397x$. Interpret the effect of snoring on the odds of heart disease.**
+
+Sabendo que $\hat{\beta} = 0.397 > 0$, assim, o crescimento no nível de “snoring” aumenta as odds de ter um ataque cardíaco. Resumindo, podemos dizer que, a cada unidade que o nível de "snoring" cresce,  a razão de chances aumenta em $e^{\hat{\beta}} = e^{0.397} \approx 1.49$ .
+
+\newpage
+
+# **Questão 4.5) For the 23 space shuttle flights before the Challenger mission disaster in 1986, Table 4.6 and the Shuttle data file at the text website shows the temperatura (F) at the time of the flight and whether at least on primary O-ring suffered thermal distress.**
+
+```{r message=FALSE, warning=FALSE}
+banco_shuttle <- read.table("C:/Users/jgararuna/Downloads/Lista 4 - ADC/Shuttle.dat", 
+                            header = TRUE)
+```
+
+
+# A) Use logistic regression to model the effect of temperature on the probability of thermal distress.
+
+Construindo o modelo, temos o seguinte resultado:
+
+```{r message=FALSE, warning=FALSE}
+mod <-  glm(banco_shuttle$TD ~ banco_shuttle$Temp, family = binomial)
+summary(mod)
+```
+
+Com base na saída acima, temos que:
+
+$$logit[\hat{P}(Y = 1)] = 15.0429 - 0.2322 \times Temp$$
+
+## B)Estimate the probability of thermal distress at $31z$, the temperature at the time of the Challenger flight.
+
+Temos que:
+
+* $\hat{\alpha} = 15.0429$
+* $\hat{\beta} = -0.2322$
+* $Temp = 31
+
+Substituindo esses valores na função $\hat{\pi}(x)$, onde $ x = Temp$, temos:
+
+$$\hat{\pi}(x) = \frac {e^{\hat{\alpha}+ \hat{\beta}x}} {e^{\hat{\alpha}+ \hat{\beta}x} + 1}$$
+
+$$\hat{\pi}(x) = \frac {e^{15.0429 - 0.2322 \times 31}} {e^{15.0429 - 0.2322 \times 31} + 1} = 0.9996083$$
+
+## C) At what temperature does the estimated probability equal 0.50? At that temperatura, give a linear
+approximation for the change in the estimated probability per degree increase in temperatura.
+
+Como vimos anteriormente, a inclinação mais acentuada ocorre quando $\pi(x)= 0.50$. Esse valor $x$ se refere aos parâmetros de regressão logística por $x = \frac {- \hat{\alpha}}{\hat{\beta}}$. 
+
+Logo, a temperatura $x = \frac {- \hat{\alpha}}{\hat{\beta}} = \frac {-15.0429}{-0.2322} = 64.78424$ gera um $\hat{\pi}(x) = 0.5$. Tal análise, pode ser verificada abaixo:
+
+$$\hat{\pi}(x) = \frac {e^{\hat{\alpha}+ \hat{\beta} (\frac {- \hat{\alpha}}{\hat{\beta}}) }} {e^{\hat{\alpha}+ \hat{\beta} (\frac {- \hat{\alpha}}{\hat{\beta}}) } + 1}$$
+
+$$\hat{\pi}(x) = \frac {e^{15.0429 - 0.2322(\frac {-15.0429}{-0.2322})}} {e^{15.0429 - 0.2322 (\frac {-15.0429}{-0.2322})} + 1}$$
+$$\hat{\pi}(x) = \frac {e^{15.0429 - 0.2322 \times 64.78424 }} {e^{15.0429 - 0.2322\times 64.78424 } + 1} = 0.5$$
+
+## D) Interpret the effect of temperature on the odds of thermal distress.
+
+A odds de estresse termal é multiplicada por $e^{\hat{\beta}} = e^{-0.2322} = 0.7927$ para cada crescimento em uma 1 unidade na temperatura.
+
+## E) Test the hypothesis that temperatura has no effect.
+
+Utilizando o teste de Wald, cujas hipóteses são $H_{0}: \beta = 0$ e $H_{1}: \beta \neq 0$, temos a seguinte estatística do teste:
+
+$$ Z = \frac {\hat{\beta}}{SE} = \frac {-0.2322}{0.1082} = -2.146026 \sim N(0,1)$$
+Com esse resultado, conseguimos calcular o p-valor a seguir:
+
+```{r message=FALSE, warning=FALSE}
+p_valor <- 2*pnorm(-2.146026)
+print(p_valor)
+```
+\newpage
+
+# **Questão 4.6) For exercise 3.9 on travel credit cards, use thte logistic output there to (a) interpret the effect of income on the odds of possessing a travel credit card, and conduct (b) a significance test and (c) a confidence interval for that effect.**
+
+## A) 
+
+Sabemos que $\hat{\alpha} = -3.52$ e $\hat{\beta} = 0.1054$. Sendo assim, a razão de chances de ter cartão de crédito pra viagens é multiplicada por $e^{\hat{\beta}} = e^{0.1054} = 1.11$ para cada aumento de $1000 euros na renda anual.
+
+## B)
+
+Usando o teste de Wald, cujas hipóteses são $H_{0}: \beta = 0$ e $H_{1}: \beta \neq 0$, temos a seguinte estatística do teste:
+
+$$ Z = \frac {\hat{\beta}}{SE} = \frac {0.1054}{0.0262} = 4.022901 \sim N(0,1)$$
+Com o resultado acima, conseguimos calcular o p-valor:
+
+```{r message=FALSE, warning=FALSE}
+p_valor <- 2*(1 - pnorm(4.022901))
+print(p_valor)
+```
+Considerando um nível se significância de 5%, há evidências suficientes para rejeitar a hipótese nula.
+
+## C)
+
+O intervalo de confiança de 95% para Wald é definido por $ \hat{\beta} \pm z_{0.975}SE$. Assim, temos que:
+
+```{r message=FALSE, warning=FALSE}
+beta <- 0.1054
+SE <- 0.0262
+
+LI <- beta-qnorm(0.975)*SE
+LS <- beta+qnorm(0.975)*SE
+cbind(LI,LS)
+```
+
+\newpage
+
+# **Questão 4.7) Hastie and Tibshirani (1990, p. 282) described a study to determine risk factors for kyphosis, which is severe forw_rd flexion of the spine following corrective spinal surgery. The Kyphosis data file at the text website shows the 40 observations on y = whether kyphosis is present (1 = yes), with x = age as the explanatory variable.**
+
+## A) Fit a logistic regression model. Test the effect of age.
+
+```{r message=FALSE, warning=FALSE}
+banco_kyphosis <- read.table("C:/Users/jgararuna/Downloads/Lista 4 - ADC/Kyphosis.dat", 
+                            header = TRUE)
+```
+
+Construindo o modelo, temos os seguintes resultados:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_kyphosis$y ~ banco_kyphosis$x, family=binomial)
+summary(mod)
+```
+
+Observando a saída acima, tem-se que $\hat{\alpha} = -0.5727$ e $\hat{\beta} = 0.0043$. Além disso, nota-se que a variável $x = idade$ não é significante a um nível de significância de 5%, visto que $p-valor = 0.463$.
+
+## B) Plot the data. Note the difference in dispersion of age at the two levels of Kyphosis.
+
+```{r message=FALSE, warning=FALSE}
+plot(banco_kyphosis$x,banco_kyphosis$y,pch = 16, col = 2,
+     xlab = "x", ylab = "y")
+```
+
+
+## C) Fit the model $logit[P(Y=1)] = \alpha + \beta_{1}x + \beta_{2}x^{2}$. Test the significance of the squared age term, plot the fit, and interpret.
+
+Primeiramente, vamos construir o modelo do termo de idade ao quadrado:
+
+```{r message=FALSE, warning=FALSE}
+banco2_kyphosis <-  cbind(banco_kyphosis, x_2 = banco_kyphosis$x^2)
+mod <-  glm(banco2_kyphosis$y ~ banco2_kyphosis$x + banco2_kyphosis$x_2, family=binomial)
+summary(mod)
+```
+
+A partir da saída acima, e considerando um nível de significância de 5%, nota-se que o teste de significância para $\hat{\beta_{2}}$ reijeita a hipótese nula $H_{0}: \beta_{2} = 0$
+
+\newpage
+
+# **Questão 4.8) For the Crabs data file at the text website, fit the logistic model for the probability of a satellite (y = 1) using x = weight as the sole explanatory variable.**
+
+Primeiramente, vamos abrir o banco e construir o modelo:
+
+```{r message=FALSE, warning=FALSE}
+banco_crabs <- read.table("C:/Users/jgararuna/Downloads/Lista 4 - ADC/Crabs.dat", 
+                            header = TRUE)
+
+mod <- glm(banco_crabs$y~banco_crabs$weight, family = binomial)
+summary(mod)
+```
+
+## A) Report the ML prediction equation. At the mean weight value of 2.437 kg, give a linear appproximation for the estimated effect of (i) a 1kg increase in weight. This represents a relatively large increase, so convert this to the effect of (ii) a 0.10kg increase, (iii) a standard deviation increase in weight.
+
+A equação é definida por:
+
+$$logit(\hat{\pi}(x)) = -3.6947 + 1.8151 \times peso$$
+
+Além disso, sabemos que a aproximação linear é a reta tangente à curva, e esta é definida por $\beta\pi(x)[1 - \pi(x)]$. Dessa forma, temos:
+
+pi(x) = {exp(alfa + beta*x) / ( exp(alfa + beta*x) + 1 )}
+
+
+* (i)
+
+$$\beta\pi(x)[1 - \pi(x)]$$
+
+$$\hat{\beta}(\frac {e^{\hat{\alpha}+ \hat{\beta}x }} {e^{\hat{\alpha}+ \hat{\beta}x} + 1})[1 - (\frac {e^{\hat{\alpha}+ \hat{\beta}x }} {e^{\hat{\alpha}+ \hat{\beta}x} + 1})]$$
+$$1.8151(\frac {e^{-3.6947+ 1.8151 \times 2.437 }} {e^{-3.6947+ 1.8151\times 2.437} + 1})[1 - (\frac {e^{-3.6947+ 1.8151\times 2.437 }} {e^{-3.6947+ 1.8151\times 2.437} + 1})] = 0.3984923 $$
+* (ii)
+
+$$\beta\pi(x)[1 - \pi(x)] \times 0.1$$
+
+$$\hat{\beta}(\frac {e^{\hat{\alpha}+ \hat{\beta}x }} {e^{\hat{\alpha}+ \hat{\beta}x} + 1})[1 - (\frac {e^{\hat{\alpha}+ \hat{\beta}x }} {e^{\hat{\alpha}+ \hat{\beta}x} + 1})] \times 0.1$$
+
+
+$$1.8151(\frac {e^{-3.6947+ 1.8151 \times 2.437 }} {e^{-3.6947+ 1.8151\times 2.437} + 1})[1 - (\frac {e^{-3.6947+ 1.8151\times 2.437 }} {e^{-3.6947+ 1.8151\times 2.437} + 1})] \times 0.1 = 0.03984923 $$
+* (iii)
+
+$$\beta\pi(x)[1 - \pi(x)] \times 0.3767$$
+
+$$\hat{\beta}(\frac {e^{\hat{\alpha}+ \hat{\beta}x }} {e^{\hat{\alpha}+ \hat{\beta}x} + 1})[1 - (\frac {e^{\hat{\alpha}+ \hat{\beta}x }} {e^{\hat{\alpha}+ \hat{\beta}x} + 1})] \times 0.3767$$
+
+
+$$1.8151(\frac {e^{-3.6947+ 1.8151 \times 2.437 }} {e^{-3.6947+ 1.8151\times 2.437} + 1})[1 - (\frac {e^{-3.6947+ 1.8151\times 2.437 }} {e^{-3.6947+ 1.8151\times 2.437} + 1})] \times 0.3767 = 0.1501121 $$
+
+## B) Find and interpret the average marginal effect of weight per 0.10kg increase.
+
+Temos que:
+
+$$\hat{\beta}(0.5 \times 0.5) = \frac {1.8151}{4} \approx 0.45 $$
+
+A partir do resultado acima, pode-se dizer que, para um crescimento de 0,10kg, o efeito estimado na probabilidade consistem em um aumento de 0.045.
+
+## C) Construct the classification table using the sample proportion of y = 1 as the cut off. Report the sensitivity and specificity. Interpret.
+
+Primeiramente, vamos construir a tabela de classificação:
+
+```{r}
+p <- sum(banco_crabs$y)/nrow(banco_crabs)
+pred <- as.numeric(fitted(mod) > p)
+
+xtabs(~ banco_crabs$y + pred)
+```
+
+Dado isso, podemos agora calcular a sensibilidade e a especificidade:
+
+* Sensibilidade:
+
+$$P(\hat{y} = 1 | y = 1) = \frac {68}{68+43} = 0.6126$$
+* Especificidade:
+
+$$P(\hat{y} = 0 | y = 0) = \frac {45}{45+17} = 0.726$$
+## D) Construct an ROC curve, and report and interpret the area under it.
+
+Para construir a curva ROC, faz-se o seguinte:
+
+```{r message=FALSE, warning=FALSE}
+library(pROC)
+curva_roc <- roc(banco_crabs$y~fitted(mod))
+plot.roc(curva_roc,legacy.axes = T, xlab = "1-Especificidade", ylab = "Sensibilidade")
+```
+Além disso, acerca da "area under", tem-se:
+
+```{r}
+auc(curva_roc)
+```
+
+\newpage
+
+# **Questão 4.9) For the Crabs data file, fit a logistic regression model for the probability of a satellite, using color alone as the predictor.**
+
+Com o código a abaixo, será realizado o ajuste de um modelo de regressão logística usando apenas a cor como preditor:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_crabs$y~factor(banco_crabs$color), family = binomial)
+summary(mod)
+```
+
+## A) Treat color as a nominal scale factor. Report the prediction equation and explain how to use it to compare the first and fourth colors.
+
+Agora, vamos ajustar um modelo de regressão logpistica tratando a variável cor como um fator na escala nominal. Sendo assim, temos:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_crabs$y~factor(banco_crabs$color,ordered = F), family = binomial)
+summary(mod)
+```
+A partir do resultado acima, pode-se definir a equação do modelo como:
+
+$$logit(\hat{\pi}) = 1.0986 - 0.1226I(color = 2) - 0.7309I(color = 3) -1.8608I(color=4)$$,
+onde $I$ representa as variáveis indicadoras.
+
+## B) For the model in (a), conduct a likelihood ratio test of the hypothesis that color has no effect. Interpret.
+
+Afim de verificar se a variável cor não apresenta efeito, realiza-se o teste de razão de verossimilhança para o modelo construído anteriormente:
+
+```{r message=FALSE, warning=FALSE}
+library(car)
+Anova(mod)
+```
+Considerando um nível de significância $\alpha = 0.05$, nota-se que há evidências suficientes para rejeitar a hipótese nula, ou seja, a variável cor apresenta efeito.
+
+## C) Treating color in a quantitative manner (scores 1,2,3,4), obtain a prediction equation. Interpret the coefficient of color and test the hypothesis that color has no effect.
+
+Primeiramente, vamos construir o modelo tratando a variável cor de forma quantitativa:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_crabs$y~as.numeric(banco_crabs$color), family = binomial)
+summary(mod)
+```
+
+A partir da saída acima, pode-se definir a equação de previsão:
+
+$$logit[\hat{\pi}(x)] = 2.3635 - 0.7147x$$
+
+Além disso, podemos dizer que para cada aumento de uma unidade em x, a qual representa a variável cor, a razão de chances é multiplicada por $e^{\hat{\beta}} = e^{-0.7147} = 0.49$.
+
+Acerca do teste, cujas hipóteses são $H_{0}: \beta = 0$ e $H_{1}: \beta \neq 0$, temos a seguinte estatística do teste:
+
+$$Z = \frac {-0.7147}{0.2095} = -3.411456$$
+
+Dado o resultado acima, podemos calcular o p-valor da seguinte forma:
+
+```{r message=FALSE, warning=FALSE}
+2*pnorm(-3.411456)
+```
+
+## D) When we treat color as quantitative instead of qualitative, state a potential advantage relating to power and a potential disadvantage relating to model lack of fit.
+
+Não sei!
+
+## E) Using weight and quantitativa color as explanatory variables, find standardized coefficients, and interpret.
+
+Fazendo o que se pede no item, temos:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_crabs$y~banco_crabs$weight+as.numeric(banco_crabs$color), family = binomial)
+summary(mod)
+```
+\newpage
+
+# **Questão 10) In a study on the effects of AZT in slowing the development of AIDS symptons, 338 veterans whose immune systems were beginning to falter after infection with the AIDS virus were randomly assigned either to receive AZT immediately or to wait until their T cells showed severe immune weakness. Output follows of modeling the 2X2X2 cross classification of race, whether AZT was given immediately, and wheter AIDS symptons developed during the three year study.**
+
+## A) What null hypothesis is tested by the difference between the null deviance and the residual deviance? Interpret.
+
+A diferença entre as desviâncias nula e residuais, cujo valor é de $8.3499 - 1.3825 = 6.9674$, representa o valor da estatística de razão de verossimilhança com $3-1 = 2$ graus de liberdade a fim de testar a hipótese $H_{0}: \beta_{1} = \beta_{2} = 0.
+
+Além disso, sabemos que a estatística possui distribuição ${X^2}(2)$ com p-valor definido por:
+
+```{r message=FALSE, warning=FALSE}
+1-pchisq(6.9674,2)
+```
+Dessa forma, há evidências suficientes para rejeitar a hipótese nula, ou seja, pode-se concluir que pelo menos uma das variáveis explicativas apresenta efeito.
+
+## B) Explain how to set up indicator variables for azt and race to obtain the estimates shown.
+
+Como o RStudio define o primeiro nível do fator como sendo o “sucesso”, basta verificar como as variáveis estão codificadas no banco de dados. Sendo assim, temos:
+
+```{r message=FALSE, warning=FALSE}
+banco_aids <- read.table("C:/Users/jgararuna/Downloads/Lista 4 - ADC/AIDS.dat", 
+                            header = TRUE)
+str(banco_aids)
+```
+Analisando a saída acima, percebe-se que Race (1=“white”, 0=“black”) e AZT (1=“yes”,0=“no”).
+
+\newpage
+
+# **Questão 14)  Table 4.8 shows results of an eight center clinical trial to compare a drug to placebo for curing an infection. At each center, subjects were randomly assigned to treatments. Analyze these data, avaiable in the Infection data file at the text website. Using logistic regression, describe and make inference about the treatment effect.**
+
+```{r message=FALSE, warning=FALSE}
+banco_infec <- read.table("C:/Users/jgararuna/Downloads/Lista 4 - ADC/Infection.dat", 
+                            header = TRUE)
+```
+
+Construindo o modelo, tem-se os seguintes resultados:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_infec$y/banco_infec$n~banco_infec$treat,weights = banco_infec$n, 
+           family = binomial)
+summary(mod)
+```
+Observando a saída acima, nota-se que o teste, cujas hipóteses são $H_{0}: \beta = 0$ e $H_{1}: \beta \neq 0$, resulta em um p-valor igual a 0.108. Dessa maneira, considerando um nível de significância de 5%, não há evidências suficientes para reijeitar a hipótese nula, isto é, a variável "treat" não apresenta efeito.
+
+\newpage
+
+# **Questão 19) For model (4.3) for the horseshoe crabs with color and width predictors, add three terms to permit interaction between color and width.**
+
+Construindo o modelo, temos os seguintes resultados:
+
+```{r message=FALSE, warning=FALSE}
+mod <- glm(banco_crabs$y~banco_crabs$width+factor(banco_crabs$color), family = binomial)
+summary(mod)
+```
+
+No entanto, para permitir a interação entre as variáveis preditoras color e width, é necessário três termos. Sendo assim, temos:
+
+```{r message=FALSE, warning=FALSE}
+mod2 <- glm(banco_crabs$y~banco_crabs$width+factor(banco_crabs$color)+banco_crabs$width:factor(banco_crabs$color), family = binomial)
+summary(mod2)
+```
+
+## A) Report the prediction equations relating width to the probability of a satellite, for each color. Plot or sketch them, and interpret.
+
+Segundo a saída obtida anteriormente, tem-se as seguintes equações:
+
+$$logit[\hat{\pi}(x)_{color = 2}] = −1.7526 + 0.106x − 8.28735 + 0.31287x$$
+
+$$logit[\hat{\pi}(x)_{color = 3}] =  −1.7526 + 0.106x − 19.76545 + 0.75237x$$
+
+$$logit[\hat{\pi}(x)_{color = 4}] = −1.7526 + 0.106x − 4.10122 + 0.09443x$$
+
+Agora, faz-se o plot das curvas:
+
+```{r message=FALSE, warning=FALSE}
+pi <-  function(alfa,beta,x){exp(alfa + beta*x) / ( exp(alfa + beta*x) + 1 )}
+curve(pi(x,alfa=-1.726 - 8.28735 , beta=0.106+ 0.31287),from=0,to=50, col= "blue", lwd=3)
+par(new=TRUE)
+curve(pi(x,alfa=-1.726 - 19.76545 , beta=0.106+ 0.75237),from=0,to=50, col="green", lwd=3) 
+par(new=TRUE)
+curve(pi(x,alfa=-1.726 - 4.10122, beta=0.106+ 0.09443),from=0,to=50, col='red', lwd=3) 
+```
+
+## B)  Test whether the interaction model fits better than the simpler model without interaction terms. Interpret. Compare their predictive power by finding the correlation R between the observed and fitted values for each model.
+
+Primeiramente, vamos veriricar se o modelo de interação se ajusta melhor do que o modelo mais simples sem termos de interação:
+
+```{r message=FALSE, warning=FALSE}
+anova(mod, mod2, test="LRT")
+```
+Com o resultado acima, observa-se que não há evidências suficientes para reijeitar a hipótese nula, ou seja, há uma diferença significativa entre os dois modelos.
+
+Nesse sentido, vamos compara o poder preditivo de ambos os modelos através da correlação entre os valores observados e ajustados:
+
+```{r message=FALSE, warning=FALSE}
+cor(banco_crabs$y, fitted(mod))
+
+cor(banco_crabs$y, fitted(mod2))
+```
+Analisando as duas saídas acima, nota-se que o mod2, ou seja, o modelo com os três termos adicionais, apresentou uma correlação maior com os valores abservados em relação ao mod.
+
+\newpage
+
+# **Questão 4.22) You plan to study the relation between x = age and y = whether a member of Facebook (1=yes, 0=no). A priori, you predict that P(Y = 1) is currently about 0.80 at x = 18 and about 0.20 at x = 65. Assuming that the logistic regression model describes the relatio well, approximate the value for the effect beta of x in the model.**
+
+De início, assume-se que $\alpha = -4.6$; isso pois, para $x=0$, temos que:
+
+$$\pi(x) = \frac {e^{\alpha}} {e^{\alpha} + 1} = \frac {e^{-4.6}} {e^{-4.6} + 1} = 0.01$$
+Nesse sentido, para $x=0$, a chance de ser membro do Facebook é estimada em 1%.
+
+Além disso, nota-se que, conforme x cresce, a função $\pi(x)$ decresce, o que indica que devemos ter $\beta <0$. Dessa forma, devemos agora estimar um valor para $\beta$, de modo que este valor aproxime as probabilidades desejadas. Assim, é necessário satisfazer as equações abaixo:
+
+
+$$\frac {e^{-4.6+\beta \times 18 }} {e^{-4.6+\beta \times 18 } + 1} \approx 0.6$$
+
+$$\frac {e^{-4.6+\beta \times 65 }} {e^{-4.6+\beta \times 65 } + 1} \approx 0.2$$
+Dado isso, fazemos os seguintes cálculos:
+
+```{r message=FALSE, warning=FALSE}
+beta <- -0.092
+
+pi(alfa=4.6, beta=beta, x=18)
+pi(alfa=4.6, beta=beta, x=65)
+```
+
+Assumindo a hipótese de que $\alpha = -4.6$, depois de algumas iterações, nota-se que a melhor estimativa é que $\beta = -0.092$. 
+
+Além disso, analisando as saídas acima, percebe-se que $\pi(x = 65) = 0.2$, como desejado, porém, $\pi(x = 18) = 0.95$, resultado o qual está acima da previsão calcula anteriormente, cujo valor foi de 0.6. 

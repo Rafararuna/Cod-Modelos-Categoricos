@@ -1,0 +1,152 @@
+---
+title: "Prova 2 - ADC 1/2021"
+date: "04/10/2021"
+output: pdf_document
+---
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+require(vcd)
+require(DescTools)
+require(knitr)
+require(vcdExtra)
+opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+
+### Aluno
+
+Rafael Santana Araruna - 180026798
+
+## Questão 3
+
+**Um estudo retrospectivo foi realizado para avaliar a relação entre a quantidade ingerida de café (número de xícaras) e infarte do miocárdio (IM) em mulheres jovens (idade entre 39 e 49 anos). Esta associação potencial pode ser confundida com o ato de fumar. As tabelas 2×2 abaixo apresentam a relação entre consumo de café e infarto de miocárdio, separadas por diferentes grupos de acordo com o hábito de fumar (em número de cigarros por dia).**
+
+```{r}
+tabelas_fumante <- array(c(7,55,31,269,
+                           7,20,18,112,
+                           7,33,24,114,
+                           40,45,88,172,
+                           34,50,24,55,
+                           27,55,24,58,
+                           30,34,17,17),
+                   dim = c(2,2,7),
+                   dimnames = list(Cafe = c(">=5", "< 5"),
+                   Infarto = c("Sim", "Não"),
+                   Fumante = c("Nunca","Ex-Fumante", "1 a 14",
+                              "15 a 24", "25 a 34",
+                              "35 a 44", "45 ou +")))
+```
+
+**(a) Obtenha a estimativa para o intervalo de 95% de confiança para a razão de chances condicional para cada grupo da categoria referente ao hábito de fumar. Interprete os resultados para uma das categorias calculadas.**
+
+
+```{r}
+rc_condicional <- loddsratio(tabelas_fumante, stratum = 3, log = FALSE)
+rc_condicional
+confint(rc_condicional, level = 0.95)
+```
+
+Analisando o valor da razão de chance condicional da categoria "45 ou +", percebe-se que a razão de chances é menor que 1, ou seja, indica que o consumo de café para os indivíduos deste grupo diminui as chances de ocorrer infarto. Contudo, nota-se que a chance de se ter infarto, caso beba café ou não, é muito alta, intuitivamente pelo uso excessivo do cigarro.
+
+Além disso, acerca do intervalo de confiança, vemos uma amplitude muito alta, variando de 0,38 até 2,03, isto é, o valor verdadeiro pode reduzir muito as chances ou até mesmo dobrar.
+
+**(b) Desejamos avaliar se o consumo intensivo de café (5 ou mais xícaras por dia) é independente da ocorência de Infarto do Miocárdio em mulheres jovens, controlando por consumo de cigarros. Escreva as hipóteses nula e alternativa para os testes de Cochran-Mantel-Haenszel e Breslow Day. Resuma os resultados e indique suas conclusões para nível de significância de 5% para cada teste.**
+
+Para o teste de Cochran-Mantel-Haenszel, tem-se as seguintes hipóteses:
+
+
+$$H_0 : \theta_{MH} = 1$$
+$$H_1 : \theta_{MH} \neq 1$$
+
+
+
+```{r}
+#Teste de Cochran-Mantel-Haenszel:
+teste_CMH <- mantelhaen.test(tabelas_fumante, correct = F, alternative = "two.sided")
+teste_CMH
+```
+Considerando um $\alpha$ de 5%, há evidências suficientes para rejeitar a hipótese nula, com um p-valor de 0,02.
+Nota-se que a razão de chances comum estimada $\hat{\theta}_{MH}$ é igual a 1,375, ou seja, indivíduos que consomem café aumenta em 37,5% as chances de sofrerem infarto do miocárdio.
+
+
+
+Para o teste de Breslow-Day, tem-se as seguintes hipóteses:
+
+
+$$H_0 : \theta_{1} = \theta_{2} = ... = \theta_{k} $$
+
+
+
+$$H_1 : \exists \  \theta_{i} \neq \theta_{j}, \ i,j = 1,2,...,7, \  \forall \ i \neq j$$
+
+```{r}
+# Teste de Breslow:
+teste_breslow <- BreslowDayTest(tabelas_fumante, correct = F)
+teste_breslow
+```
+
+Considerando um nível de significância de 0,05, não há evidências para rejeitar a hipótese de homogeneidade das razões de chance dos grupos de fumantes, com p-valor de 0,70. Isto quer dizer que a razão de chances é estatisticamente homogênea em todos os grupos.
+
+**(c) Se for apropriado, obtenha o estimador logito da razão de chances comum e seu intervalo de 95% de confiança. Porque esta estatística é calculada.**
+
+A estatística logito pode ser calculada pois todos os $n_{ij}$ são maiores que 5, e a associação nas tabelas parciais aparenta ser estável. Portanto: 
+
+```{r}
+t <- tabelas_fumante
+w_ks <- c()
+
+while (length(t) != 0){
+  w_k <- 1/((1/t[1]) + (1/t[2]) + (1/t[3]) + (1/t[4]))
+  
+  w_ks <- append(w_ks, w_k)
+  
+  t <- t[-c(1, 2, 3, 4)]
+}
+ 
+est_logito <- exp(sum(w_ks*rc_condicional$coefficients)/sum(w_ks))
+
+LI <- exp(log(est_logito) - 1.96*(sum(w_ks)^(-1/2)))
+LS <- exp(log(est_logito) + 1.96*(sum(w_ks)^(-1/2)))
+knitr::kable(cbind(LI, "Logito" = est_logito, LS), align = 'c')
+```
+
+Essa estatística foi calculada no intuito de se estimar a razão de chances comum das tabelas, pois a equação para o erro padrão de $log(\hat{\theta_{MH}})$ é complicada e não é sensível ao tamanho da amostra. Além disso, percebe-se duas coisas:
+
+* $\hat{\theta}_{L} = 1,38$ e $\hat{\theta}_{MH} = 1,375$, ou seja, ambas as estimativas convergiram para um valor próximo.
+
+* O intervalo de confiança indica que o valor verdadeiro da razão de chances é maior que 1, com confiança de 95%.
+
+\newpage
+
+## Questão 4
+
+**Suponha que desejamos estudar a relação entre idade da mulher quando mãe pela primeira vez (maternidade) e desenvolvimento de cancer de mama. Em particular, queremos verificar se o efeito de maternidade segue uma tendência consistente. Os resultados são apresentados na tabela abaixo.**
+
+```{r}
+tabela_cancer <- matrix(c(1422, 4432, 2893, 1092, 406,
+                          320, 1206, 1011,  463, 220),
+                 byrow = T, 2, 5)
+rownames(tabela_cancer) <- c("Controle", "Caso")
+colnames(tabela_cancer) <- c("< 20", "20-24", "25-29", "30-34", "> 34")
+knitr::kable(tabela_cancer, align = 'c')
+```
+
+
+**(a) Indique e justifique uma estatística apropriada para o teste em questão? Qual a distribuição assintótica da estatística indicada?**
+
+A estatística apropriada é a $M^2$ , pois ela é indicada para testar independência e tendência de variáveis ordinais. Para grandes amostras, que é o caso do estudo, $M^2 \sim \chi^2_{1}$.
+
+**(b) Indique as hipóteses nula e alternativa para o teste que utiliza a estatística que você indicou no item anterior. Qual a conclusão para o teste?**
+
+As hipóteses para o teste da estatística $M^2$ são:
+
+$H_{0} : \text{Há independência entres as variáveis}$
+
+$H_{1} : \text{Há dependência entres as variáveis}$
+
+```{r}
+CMHT <- CMHtest(tabela_cancer, rscores = c(0, 1), cscores = c(19, 22, 27, 32, 35))
+CMHT
+```
+
+Da tabela acima estamos interessados no valor de "cor". Pelo p-valor baixíssimo e com nível de significância de 0,05, pode-se concluir que há evidências suficientes para rejeitar a independência das variáveis, ou seja, o desenvolvimento do câncer de mama depende da idade que a mulher foi mãe pela primeira vez.

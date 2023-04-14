@@ -1,0 +1,106 @@
+---
+title: "Atividade Complementar 04 e 05"
+author: "Rafael Santana Araruna - 18/0026798"
+date: "20/09/2021"
+output: pdf_document
+---
+
+## **Ensaios clínicos de vacinas para COVID-19**
+
+Geralmente, a pesquisa clínica é classificada em 4 fases: 
+
+  - Fase I: Consiste na utilização do medicamento pela primeira em um indivíduo, que seja saudável e que não tenha a doença. Nesta etapa diferentes doses são estudadas, além de ser realizado testes inicias de segurança e interação com outras drogas ou álcool. Cerca de 20 a 100 indivíduos participam desta etapa.
+  - Fase II: Nesta etapa,  visando avaliar a eficácia do novo procedimento, diferentes dosagens, bem como diferentes indicações do novo medicamento, são estudadas. Cerca de 100 a 300 indivíduos que têm a doença, ou condição para a qual o procedimento está sendo feito, participam desta fase.
+  - Fase III: Nesta etapa, estudos acompanham milhares de pacientes (5 a 10 mil), por um período maior de tempo, realizando a comparação com outros tratamentos existentes e recomendados para o mesmo problema. Durante esta fase se espera obter maiores informações sobre segurança, eficácia e interação de drogas. O voluntário que participar dessa fase poderá receber ou o novo tratamento ou o tratamento habitual (ou placebo), onde o objetivo é comparar ambos os tratamentos e estabelecer a superioridade de um sobre o outro. Os testes dessa fase devem fornecer todas as informações necessárias para a elaboração do rótulo e da bula do medicamento, bem como levar ao registro e aprovação, pelas autoridades sanitárias, para uso comercial deste.
+  - Fase IV: Após o medicamento ser aprovado e levado ao mercado, testes de acompanhamento de seu uso são elaborados e implementados em milhares de pessoas, possibilitando o conhecimento de detalhes adicionais sobre a segurança e a eficácia do produto. Um dos principais objetivos desta fase, conhecida como Farmacovigilância, é detectar e definir efeitos colaterais previamente desconhecidos ou incompletamente qualificados, assim como os fatores de risco relacionados.
+
+## **Segurança e eficácia da vacina BNT162b2 mRNA COVID-19**
+
+Neste estudo foi designado, aleatoriamente, indivíduos com 16 anos de idade ou mais em uma proporção de 1:1 para receber duas doses, com 21 dias de intervalo, de placebo ou da vacina candidata BNT162b2 (30 miligramas por dose). Esta consiste em uma vacina de RNA modificada com nucleosídeos formulada com nanopartículas lipídicas. Esse estudo, o qual se encontra na fase III, resultou na eficácia da vacina contra Covid-19 confirmada em laboratório, onde, um regime de duas doses de BNT162b2, conferiu proteção de 95% contra Covid-19. Este artigo foi publicado em 31 de dezembro de 2020 e o seu respectivo link se encontra [aqui](https://www.nejm.org/doi/full/10.1056/nejmoa2034577).
+
+A partir dos resultados desse estudo, foi possível montar a seguinte tabela de contingência:
+
+\newpage
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(vcd)
+library(fmsb)
+library(knitr)
+
+tab_cont <- matrix(c(8,18190,18198,162,18163,18325),2,3,byrow = T)
+dimnames(tab_cont) <- list(Tratameto= c("BNT162b2","Placebo"),
+                          Condicao = c("Com COVID-19","Sem COVID-19", "Total"))
+knitr::kable(tab_cont,align = 'c')
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+a <- tab_cont[1,1]
+b <- tab_cont[1,2]
+c <- tab_cont[2,1]
+d <- tab_cont[2,2]
+total_vacina <- a + b
+total_controle <- c + d
+```
+
+A partir da tabela acima, define-se:
+
+  - a = 8
+  - b = 18190
+  - c = 162
+  - d = 18163
+  - total_vacina = 18198
+  - total_controle = 18325
+  
+
+Definida as variáveis, pode-se realizar o cálculos das seguintes medidas:
+
+  - RR:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+RR <- riskratio(a,c,total_vacina,total_controle,conf.level = 0.95)
+RR$estimate
+```
+
+A partir da resultado acima, conclui-se que a vacina BNT162b2, no grupo de indivíduos que tomaram a vacina e que contraíram COVID-19, apresentou uma redução de 95% na probabilidade de casos.
+
+  - OR:
+  
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+OR <- oddsratio(a,c,b,d, conf.level = 0.95)
+OR$estimate
+```
+
+A partir da resultado acima, conclui-se que há, aproximadamente, uma redução na chance de se ter COVID-19 em 95% no grupo que tomou a vacina. Além disso, sabendo que o tamanho dos dois grupos (BNT162b2 e Placebo) são elevados, nota-se que as medidas RR e OR possuem resultados semelhantes. 
+
+  - RRR:
+  
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+(RRR <- (c/total_controle - a/total_vacina)/(c/total_controle))
+```
+
+A partir da resultado acima, conclui-se que a vacina BNT162b2 possui uma eficácia de 95%.
+
+  - ARR:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+(ARR <- (c/total_controle - a/total_vacina))
+```
+
+A partir da resultado acima, percebe-se que, pelo fato das proporções dos grupos serem baixas, seu valor é bastante pequeno, pelo fato da COVID-19 ser uma doença que não afeta tantas pessoas.
+
+  - NNT:
+  
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+(NNT <- (1/ARR))
+```
+ 
+A partir da resultado acima, conclui-se que, para prevenir que se tenha um caso de COVID-19 na população, é preciso vacinar 119 indivíduos.
+
+  - PEER:
+  
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+(PEER <- (c/total_controle))
+```
+
+A partir da resultado acima, percebe-se que essa medida possui um valor muito baixo, indicando que, mesmo em indivíduos que não tomaram a vacina, a proporção é baixa de contrair a COVID-19 para este grupo.

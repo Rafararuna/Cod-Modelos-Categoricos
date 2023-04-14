@@ -1,0 +1,263 @@
+---
+title: "Prova 3"
+author: "Rafael Santana Araruna - 180026798"
+date: "03/11/2021"
+output: pdf_document
+---
+
+## **Estudo: Ronco como fator de risco para doença cardíaca**
+
+A tabela abaixo é baseada em estudo epidemiológico com 2484 sujeitos para avaliar se ronco é um possível fator de risco para doença do coração.
+
+```{r message=FALSE, warning=FALSE,echo=FALSE, echo=FALSE}
+base_ronco <- data.frame("Freq. de Ronco" = c('Nunca', 'Ocasionalmente', 
+                                              'Quase toda noite','Toda noite'), 
+                        "Com Doença" = c(24,35,21,30), 
+                        "Sem Doença" = c(1355,603,192,224))
+colnames(base_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+knitr::kable(base_ronco,align = 'c')
+```
+
+Utilizando os scores (5,10,15,20) responda as questões seguintes:
+
+# (a) 
+
+Primeiramente, vamos construir a tabela com os scores pedidos na questão:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+base2_ronco <-  data.frame("Freq. de Ronco" = c(5,10,15,20), 
+                         "Com Doença" = c(24,35,21,30), 
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base2_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+knitr::kable(base2_ronco,align = 'c')
+```
+
+Agora, fazendo o ajuste do modelo de regressão, tem-se o seguinte resultado:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+mod_ronco <- glm(base2_ronco$`Com Doença`/(base2_ronco$`Com Doença`+ base2_ronco$`Sem Doença`) ~ 
+                   base2_ronco$`Freq. de Ronco`, weights = base2_ronco$`Com Doença` +
+                   base2_ronco$`Sem Doença`, family = binomial)
+#summary(mod_ronco)
+```
+
+$$logit[\hat{\pi}(x)] = -4.43191 + 0.13091 \times x,$$ onde x representa a frequência de ronco.
+
+Logo, analisando a equação acima, nota-se que $\hat{\alpha} = -4.43191$ e $\hat{\beta} = 0.13091$ .
+
+# (b)
+
+A partir do resultado no item anterior, sabemos que $\hat{\beta} = 0.13091 > 0$, ou seja, conforme o nível de ronco cresce, a probabilidade estimada aumenta.
+
+# (c)
+
+As probabilidades amostrais são: $\hat{p}_{0} = \frac{24} {24+1355} = 0.01740$, $\hat{p}_{2} = \frac{35} {35+603} = 0.05485$, $\hat{p}_{3} = \frac{21} {21+192} = 0.09859$ e $\hat{p}_{4} = \frac{30} {30+224} = 0.11811$ .
+
+Além disso, as probabilidades estimadas pelo modelo construído anteriormente são calculadas a seguir:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+pi_est <- function(alfa,beta,x){ exp(alfa + beta*x) / (exp(alfa + beta*x) + 1)}
+pi_5 <-  pi_est(alfa=-4.43191,beta=0.13091,x=5)
+pi_10 <-  pi_est(alfa=-4.43191,beta=0.13091,x=10)
+pi_15 <-  pi_est(alfa=-4.43191,beta=0.13091,x=15)
+pi_20 <-  pi_est(alfa=-4.43191,beta=0.13091,x=20)
+
+df <- data.frame("0" = pi_5, "2" = pi_10, "4" = pi_15, "5" = pi_20)
+colnames(df) <- c("pi_5", "pi_10", "pi_15", "pi_20")
+knitr::kable(df,align = 'c')
+```
+
+Pelos resultados, percebe-se que as probabilidades amostrais e as probabilidades ajustadas pelo modelo apresentam resultados bastante próximos.
+
+# (d)
+
+Utilizando a saída do item (a), temos que $EL_{50} = - \frac{(-4.43191)}{0.13091} = 33.85463$. Isto indica que, nesse ponto, cada resultado (sucesso/fracasso) apresenta 50% de chance de ocorrência.
+
+# (e)
+
+Utilizando os resultados do item (a), temos que a razão de chances é definida por:
+
+$$e^{\hat{\beta}} = e^{0.13091} = 1.139865 $$
+
+O resultado acima indica que a chance de doença no coração cresce em 13,98% para aumento de uma unidade em x.
+
+Agora, calcula-se o intervalo de confiança para 90%, cujo resultado é:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+#confint(mod_ronco,level = 0.90)
+
+tabela <- data.frame("x" = c("Intercepto", "Beta - Freq. de Ronco"),
+                     "y" = c(-4.8138759,0.1037494),
+                     "w" = c(-4.0709355, 0.1581274))
+colnames(tabela) <- c(" ", "Limite Inferior", "Limite Superior")
+knitr::kable(tabela, align = 'c', caption = "Intervalo de Confiança")
+```
+
+
+# (f)
+
+As hipóteses a serem testadas são:
+
+$$ H_{0} : \beta = 0$$
+$$ H_{1} : \beta \neq 0$$
+
+Agora, definimos a estatística do teste e o p-valor:
+
+$$ Z = \frac{\hat{\beta}}{SE} \sim  N(0,1)$$
+
+$$ Z = \frac {0.13091} {0.01651} = 7.9291 \Rightarrow P = 2.18 \times 10^{-15}$$
+
+A partir do resultado acima, e considerando um nível de significância $\alpha = 0.05$, conclui-se que há evidências suficientes para rejeitar a hipótese nula.
+
+# (g)
+
+Se considerarmos "Freq. de Ronco" como sendo uma variável quantitativa, então as estimativas vão mudar conforme os valores codificados são alterados. No entanto, se definirmos a variável "Freq. de Ronco" como sendo um fator, as estimativas não vão mudar. Segue as duas situações abaixo:
+
+Primeiramente, vamos alterar a codificação e construir o modelo com a variável "Freq. de Ronco" ainda como quantitativa. Sendo assim, temos:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+base3_ronco <-  data.frame("Freq. de Ronco" = c(2,4,6,8),"Com Doença" = c(24,35,21,30),
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base3_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+mod2_ronco <- glm(base3_ronco$`Com Doença`/(base3_ronco$`Com Doença`+ base3_ronco$`Sem Doença`) ~ 
+                    base3_ronco$`Freq. de Ronco`, weights = base3_ronco$`Com Doença` +
+                    base3_ronco$`Sem Doença`, family = binomial)
+#summary(mod2_ronco)
+```
+
+$$logit[\hat{\pi}(x)] = -4.43191 + 0.32726x,$$ onde x representa a frequência de ronco.
+
+Com o resultado acima, pode-se notar que o valor de $\hat{\beta}$ mudou em razão da alteração na codificação da variável "Freq. de Ronco", mas o valor de $\hat{\alpha}$ foi o mesmo.
+
+Nesse sentido, vamos tratar a variável "Freq. de Ronco" agora como categórica. Assim, será construído dois modelos, o primeiro com a codificação original e o segundo com a codificação (2,4,6,8). Dessa forma, tem-se:
+
+* Modelo com a codificação original:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+base4_ronco <-  data.frame("Freq. de Ronco" = c(5,10,15,20),"Com Doença" = c(24,35,21,30),
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base4_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+mod3_ronco <- glm(base4_ronco$`Com Doença`/(base4_ronco$`Com Doença`+ base4_ronco$`Sem Doença`) ~ 
+                    factor(base4_ronco$`Freq. de Ronco`), weights = base4_ronco$`Com Doença`+ 
+                    base4_ronco$`Sem Doença`, family = binomial)
+#summary(mod3_ronco)
+```
+
+$$logit[\hat{\pi}(x)] = -4.0335 + 1.1869x_{freq = 10} + 1.8205 x_{freq = 15} + 2.0231 x_{freq = 20},$$ onde x representa a frequência de ronco.
+
+* Modelo com a codificação alterada:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+base5_ronco = data.frame("Freq. de Ronco" = c(2,4,6,8),"Com Doença" = c(24,35,21,30),
+                         "Sem Doença" = c(1355,603,192,224))
+colnames(base5_ronco) <- c("Freq. de Ronco", "Com Doença", "Sem Doença")
+mod4_ronco <- glm(base5_ronco$`Com Doença`/(base5_ronco$`Com Doença`+ base5_ronco$`Sem Doença`) ~ 
+                    factor(base5_ronco$`Freq. de Ronco`), weights = base5_ronco$`Com Doença`+ 
+                    base5_ronco$`Sem Doença`, family = binomial)
+#summary(mod4_ronco)
+```
+
+$$logit[\hat{\pi}(x)] = -4.0335 + 1.1869x_{freq = 10} + 1.8205x_{freq = 15} + 2.0231x_{freq = 20},$$ onde x representa a frequência de ronco.
+
+A partir das saídas dos dois modelos acima, observamos que, se a variável "Freq. de Ronco" for tratada como categórica, a mudança na codificação não altera os valores dos parâmetros estimados.
+
+# (h)
+
+Se considerarmos a variável "Freq. de Ronco" como nominal, o modelo logístico não será melhor ajustado, pois fazendo essa mudança haveria perda de informação em relação à ordem das variáveis.
+
+
+\newpage
+
+# **Desvio da coluna vertebral**
+
+Um estudo sobre fatores de risco analisou 40 pacientes com suspeita de cifose. Exames confirmaram a suspeita de cifose em 18 dos pacientes e foram negativos nos 22 pacientes restantes. A idade, em meses, na época da operação de 18 pacientes sem cifose eram 12, 15, 42, 52, 59, 73, 82, 91, 96, 105, 114, 120, 121, 128, 130, 139, 139, 140. Para 22 pacientes em que cifose estava presente as idades eram 1, 1, 2, 8, 11, 18, 22, 31, 37, 61, 72, 81, 97, 112, 118, 127, 131, 150, 151, 159, 200, 206.
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+df <- data.frame("y" = c(rep(0,18),rep(1,22)),
+                 "x" = c(12, 15, 42, 52, 59, 73, 82, 91, 96, 105, 114, 120, 121, 128,
+                         130, 139, 139, 140,1, 1, 2, 8, 11, 18, 22, 31, 37, 61, 72, 
+                         81, 97, 112, 118, 127, 131, 150, 151, 159, 200, 206))
+```
+
+# (a)
+
+Ajustando o modelo temos o seguinte resultado:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+mod <- glm(df$y ~ df$x,family=binomial)
+#summary(mod)
+```
+
+A partir da saída acima, temos que:
+
+$$logit[\hat{\pi}(x)] = 0.493039 - 0.003366x,$$ onde x representa a idade.
+
+# (b)
+
+Realizando o teste para a variável $x = idade$, cujas hipóteses são $H_{0}: \beta = 0$ e $H_{1}: \beta \neq 0$, temos que seu p-valor resultou em 0.557, ou seja, não há evidências suficientes para rejeitar a hipótese nula. Assim, podemos dizer que a variável idade não pe significativa.
+
+Visualmente, temos o seguinte gráfico:
+
+```{r message=FALSE, warning=FALSE, echo = FALSE, fig.width=6, fig.height=2.5}
+library(ggplot2)
+ggplot(df, aes(x=x,y=as.factor(y), colour = factor(df$y))) +  
+  geom_point() +
+  labs(x = "Idade", y = "Função Logito") +
+  scale_colour_manual("Legenda", values = c("red","blue"),labels = c("Sem Cifose", "Com Cifose")) +
+  theme_bw()
+```
+
+Analisando o recurso gráfico acima, nota-se que as observações dos indivíduos que apresentam cifose parecem estar bastante dispersas, tanto que o seu intervalo engloba o intervalo das observações dos indivíduos que não apresentam cifose. Dessa maneira, podemos dizer que, visualmente, a variável idade não aparenta ser significativa, corroborando com o que foi conluído a partir do teste de hipótese realizado anteriormente.
+
+# (c)
+
+Rezalizando o cálculo da estatística do teste de razão de verossimilhança, tem-se os seguintes resultados:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+library(car)
+#Anova(mod)
+
+tabela <- data.frame("x" = c("Idade"),
+                     "y" = c(0.34802),
+                     "z" = c(1),
+                     "w" = c(0.5552))
+colnames(tabela) <- c("Variável", "Estatística", "GL", "P-valor")
+knitr::kable(tabela, align = 'c', caption = "Teste de ANOVA")
+```
+
+A partir do resultado acima e considerando um nível de significância $\alpha = 0.05$, podemos dizer que não há evidências suficientes para rejeitar a hipótese nula $H_{0}: \beta = 0$ .
+
+# (d)
+
+A razão de chances pode ser calculada da seguinte forma:
+
+$$e^{\hat{\beta}} = e^{- 0.003366} = 0.9966397 $$
+
+O resultado acima indica que a chance de se ter cifose decresce em 0.33% para aumento de uma unidade em x.
+
+
+Agora, calcula-se o intervalo de confiança para 95% de confiança:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+#confint(mod, level = 0.95)
+tabela <- data.frame("x" = c("Intercepto", "Beta - Idade"),
+                     "y" = c(-0.6553,-0.0150),
+                     "w" = c(1.7159, 0.0078))
+colnames(tabela) <- c(" ", "Limite Inferior", "Limite Superior")
+knitr::kable(tabela, align = 'c', caption = "Intervalo de Confiança")
+```
+
+
+# (e)
+
+Primeiramente, plota-se a curva ROC:
+
+```{r message=FALSE, warning=FALSE,echo=FALSE,  fig.width=10, fig.height=4}
+library(pROC)
+curva_roc <- roc(df$y~fitted(mod))
+plot.roc(curva_roc,legacy.axes = T, xlab = "1-Especificidade", ylab = "Sensibilidade")
+
+#auc(curva_roc)
+```
+
+Para tirar alguma interpretação do gráfico acima, é necessário, antes, calcular a área sob a curva, que consiste em uma medida de desempenho do teste como discriminador de indivíduos doentes (com cifose) e saudáveis (sem cifose). Dessa maneira, calculando a área sob a curva, obtem-se um valor igual a 0.5657, ou seja, o teste não permite distinguir entre os grupos.
